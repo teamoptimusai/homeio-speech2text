@@ -2,7 +2,5 @@ datasets
 Run.ipynb
 temp
 runs
-model/__pycache__/model.cpython-37.pyc
-utils/__pycache__/__init__.cpython-37.pyc
-utils/__pycache__/dataset.cpython-37.pyc
-utils/__pycache__/processing.cpython-37.pyc
+*.pyc
+
