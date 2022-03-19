@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 from torch.nn import functional as F
 
 
@@ -43,6 +44,11 @@ class SpeechRecognition(nn.Module):
         self.layer_norm2 = nn.LayerNorm(hidden_size)
         self.dropout2 = nn.Dropout(dropout)
         self.final_fc = nn.Linear(hidden_size, num_classes)
+
+    def _init_hidden(self, batch_size):
+        n, hs = self.num_layers, self.hidden_size
+        return (torch.zeros(n*1, batch_size, hs),
+                torch.zeros(n*1, batch_size, hs))
 
     def forward(self, x, hidden):
         x = x.squeeze(1)  # batch, feature, time

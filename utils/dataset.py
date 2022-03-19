@@ -4,6 +4,7 @@ import torch.nn as nn
 import pandas as pd
 import numpy as np
 from utils.processing import TextProcess
+import sys
 
 
 class SpecAugment(nn.Module):
@@ -94,10 +95,10 @@ class Dataset(torch.utils.data.Dataset):
             idx = idx.item()
 
         try:
-            file_path = self.data.key.iloc[idx]
+            file_path = self.data['key'].iloc[idx]
             waveform, _ = torchaudio.load(file_path)
             label = self.text_process.text_to_int_sequence(
-                self.data['text'].iloc[idx])
+                self.data['text'].iloc[idx].lower())
             spectrogram = self.audio_transforms(
                 waveform)  # (channel, feature, time)
             spec_len = spectrogram.shape[-1] // 2
@@ -107,13 +108,14 @@ class Dataset(torch.utils.data.Dataset):
             if spectrogram.shape[0] > 1:
                 raise Exception(
                     'dual channel, skipping audio file %s' % file_path)
-            if spectrogram.shape[2] > 1650:
-                raise Exception('spectrogram to big. size %s' %
-                                spectrogram.shape[2])
+            # if spectrogram.shape[2] > 1650:
+            #     raise Exception('spectrogram to big. size %s' %
+            #                     spectrogram.shape[2])
             if label_len == 0:
                 raise Exception('label len is zero... skipping %s' % file_path)
         except Exception as e:
             if self.log_ex:
+                file_path = self.data['key'].iloc[idx]
                 print(str(e), file_path)
             return self.__getitem__(idx - 1 if idx != 0 else idx + 1)
         return spectrogram, label, spec_len, label_len
