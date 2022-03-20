@@ -92,8 +92,6 @@ if __name__ == "__main__":
                         help='JSON file to load Training data')
     parser.add_argument('--valid_file', default=None, required=True, type=str,
                         help='JSON file to load Validation data')
-    parser.add_argument('--val_check_interval', default=1000, required=False, type=int,
-                        help='valid after every Nth iteration')
 
     # Logging and Saving Model
     parser.add_argument('--weights', default=None, required=False, type=str,
