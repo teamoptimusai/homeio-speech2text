@@ -6,8 +6,8 @@ import wave
 import torchaudio
 import torch
 from utils.dataset import get_featurizer
-from utils.decoder import DecodeGreedy, CTCBeamDecoder
-from threading import Event
+# from utils.decoder import DecodeGreedy, CTCBeamDecoder
+from utils.decoder import DecodeGreedy, decoder_test, GreedyCTCDecoder
 
 
 class Listener:
@@ -34,7 +34,7 @@ class Listener:
         thread = threading.Thread(
             target=self.listen, args=(queue,), daemon=True)
         thread.start()
-        print("\Speech Recognition engine is now listening... \n")
+        print("\Speech Recognition Engine is now listening... \n")
 
 
 class SpeechRecognitionEngine:
@@ -48,14 +48,17 @@ class SpeechRecognitionEngine:
         self.hidden = (torch.zeros(1, 1, 1024), torch.zeros(1, 1, 1024))
         self.beam_results = ""
         self.out_args = None
-        self.beam_search = CTCBeamDecoder(
-            beam_size=100, kenlm_path=ken_lm_file)
-        # multiply by 50 because each 50 from output frame is 1 second
+        # self.beam_search = CTCBeamDecoder(
+        #     beam_size=100, kenlm_path=ken_lm_file)
+        # # multiply by 50 because each 50 from output frame is 1 second
+        self.GreedyCTCDecoder = GreedyCTCDecoder()
+        print(self.GreedyCTCDecoder.labels)
         self.context_length = context_length * 50
         self.start = False
+        self.n = 0
 
-    def save(self, waveforms, fname="audio_temp"):
-        wf = wave.open(fname, "wb")
+    def save(self, waveforms, fname="temp/audio/audio_temp"):
+        wf = wave.open(f'{fname}{self.n}.wav', "wb")
         # set the channels
         wf.setnchannels(1)
         # set the sample format
@@ -66,19 +69,23 @@ class SpeechRecognitionEngine:
         wf.writeframes(b"".join(waveforms))
         # close the file
         wf.close()
-        return fname
+        return f'{fname}{self.n}.wav'
 
     def predict(self, audio):
         with torch.no_grad():
             fname = self.save(audio)
+            self.n = self.n + 1
             waveform, _ = torchaudio.load(fname)  # don't normalize on train
             log_mel = self.featurizer(waveform).unsqueeze(1)
             out, self.hidden = self.model(log_mel, self.hidden)
+            results = DecodeGreedy(out)
+            # results = self.GreedyCTCDecoder(out)
             out = torch.nn.functional.softmax(out, dim=2)
             out = out.transpose(0, 1)
             self.out_args = out if self.out_args is None else torch.cat(
                 (self.out_args, out), dim=1)
-            results = self.beam_search(self.out_args)
+            # decoder_test(self.out_args)
+            # results = self.beam_search(self.out_args)
             current_context_length = self.out_args.shape[1] / 50  # in seconds
             if self.out_args.shape[1] > self.context_length:
                 self.out_args = None

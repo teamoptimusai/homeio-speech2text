@@ -4,5 +4,5 @@ Run.ipynb
 temp
 runs
 *.pyc
-
-
+.vscode
+*.pyc
