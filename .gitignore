@@ -1,6 +1,8 @@
-datasets
+datasets/*
+!datasets/make_dataset.py
 Run.ipynb
 temp
 runs
 *.pyc
+
 
