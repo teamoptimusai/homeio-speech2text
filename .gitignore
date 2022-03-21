@@ -6,4 +6,4 @@ runs
 *.pyc
 .vscode
 *.pyc
-transcript.txt
+demo/transcript.txt

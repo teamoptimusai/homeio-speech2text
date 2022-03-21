@@ -39,7 +39,7 @@ class Listener:
 
 class SpeechRecognitionEngine:
 
-    def __init__(self, model_file, ken_lm_file, context_length=10):
+    def __init__(self, model_file, ken_lm_file, context_length=10, temp_audio_dir="temp/audio"):
         self.listener = Listener(sample_rate=8000)
         self.model = torch.jit.load(model_file)
         self.model.eval().to('cpu')  # run on cpu
@@ -48,6 +48,7 @@ class SpeechRecognitionEngine:
         self.hidden = (torch.zeros(1, 1, 1024), torch.zeros(1, 1, 1024))
         self.beam_results = ""
         self.out_args = None
+        self.temp_audio_dir = temp_audio_dir
         # self.beam_search = CTCBeamDecoder(
         #     beam_size=100, kenlm_path=ken_lm_file)
         # # multiply by 50 because each 50 from output frame is 1 second
@@ -57,8 +58,8 @@ class SpeechRecognitionEngine:
         self.start = False
         self.n = 0
 
-    def save(self, waveforms, fname="temp/audio/audio_temp"):
-        wf = wave.open(f'{fname}{self.n}.wav', "wb")
+    def save(self, waveforms, fname="audio_temp"):
+        wf = wave.open(f'{self.temp_audio_dir}/{fname}{self.n}.wav', "wb")
         # set the channels
         wf.setnchannels(1)
         # set the sample format
@@ -69,7 +70,7 @@ class SpeechRecognitionEngine:
         wf.writeframes(b"".join(waveforms))
         # close the file
         wf.close()
-        return f'{fname}{self.n}.wav'
+        return f'{self.temp_audio_dir}/{fname}{self.n}.wav'
 
     def predict(self, audio):
         with torch.no_grad():
