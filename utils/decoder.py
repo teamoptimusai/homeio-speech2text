@@ -1,6 +1,5 @@
 from utils.processing import TextProcess
 # import ctcdecode
-from ctc_decoder import beam_search
 import torch
 
 textprocess = TextProcess()
@@ -42,13 +41,6 @@ def DecodeGreedy(output, blank_label=28, collapse_repeated=True):
 
 #     def convert_to_string(self, tokens, vocab, seq_len):
 #         return ''.join([vocab[x] for x in tokens[0:seq_len]])
-
-def decoder_test(output):
-    char = "".join(labels)
-    x = output.numpy()
-    x = x.reshape(x.shape[2], x.shape[1])
-    print(x.shape)
-    print(f'Beam search: "{beam_search(x, char)}"')
 
 
 class GreedyCTCDecoder(torch.nn.Module):

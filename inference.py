@@ -7,7 +7,7 @@ import torchaudio
 import torch
 from utils.dataset import get_featurizer
 # from utils.decoder import DecodeGreedy, CTCBeamDecoder
-from utils.decoder import DecodeGreedy, decoder_test, GreedyCTCDecoder
+from utils.decoder import DecodeGreedy, GreedyCTCDecoder
 
 
 class Listener:

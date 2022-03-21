@@ -1,4 +1,3 @@
-import os
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -13,6 +12,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import yaml
 from datetime import datetime
+import os
 
 
 class Speech2Text(LightningModule):
@@ -20,7 +20,6 @@ class Speech2Text(LightningModule):
         super(Speech2Text, self).__init__()
         self.model = model
         self.opt = opt
-        self.lr = lr
         self.data_params = data_params
         self.criterion = nn.CTCLoss(blank=28, zero_infinity=True)
 
@@ -30,8 +29,7 @@ class Speech2Text(LightningModule):
     def configure_optimizers(self):
         self.optimizer = optim.AdamW(self.model.parameters(), self.opt.lr)
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer, mode='min',
-            factor=0.50, patience=6)
+            self.optimizer, mode='min', factor=0.5, patience=5, verbose=True)
         return {'optimizer': self.optimizer, 'scheduler': self.scheduler, 'monitor': 'val_loss'}
 
     def step(self, batch):
@@ -56,7 +54,8 @@ class Speech2Text(LightningModule):
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         self.scheduler.step(avg_loss)
-        tensorboard_logs = {'val_loss': avg_loss}
+        tensorboard_logs = {'val_loss': avg_loss.item()}
+        print("Validation Loss:", avg_loss.item())
         return {'val_loss': avg_loss, 'log': tensorboard_logs}
 
     def train_dataloader(self):
@@ -98,6 +97,8 @@ if __name__ == "__main__":
                         help='Path to the pretrained weights to continue training')
     parser.add_argument('--logdir', default='runs', required=False, type=str,
                         help='Path to save TensorBoard logs')
+    parser.add_argument('--name', default=datetime.now().strftime('%Y_%m_%d_%H_%M_%S'), required=True, type=str,
+                        help='Name of the run')
 
     # General
     parser.add_argument('--epochs', default=10, type=int,
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                         type=float, help='Learning Rate')
 
     opt = parser.parse_args()
-    print("OPTIONS:", opt)
+    print("arguments:", opt)
 
     with open(opt.params, 'r') as stream:
         config = yaml.safe_load(stream)
@@ -126,22 +127,37 @@ if __name__ == "__main__":
 
     if opt.weights:
         speech2text = Speech2Text.load_from_checkpoint(
-            opt.weights, model=model, args=opt)
+            opt.weights, model=model, opt=opt, data_params=dataset_params)
     else:
         speech2text = Speech2Text(model, opt, dataset_params)
 
-    run_name = 'run_' + datetime.now().strftime('%Y%m%d_%H%M%S')
-    logger = TensorBoardLogger(
-        save_dir=opt.logdir, name=run_name, log_graph=True)
+    # increment a number if the folder already exists
+    if os.path.exists(os.path.join(opt.logdir, opt.name)):
+        i = 1
+        while os.path.exists(os.path.join(opt.logdir, opt.name + "_" + str(i))):
+            i += 1
+        opt.name = opt.name + str(i)
+    os.makedirs(os.path.join(opt.logdir, opt.name))
+    print("Saving Checkpoints at", os.path.join(opt.logdir, opt.name))
+
+    logger = TensorBoardLogger(save_dir=opt.logdir, name=opt.name)
+
+    best_callback = ModelCheckpoint(
+        dirpath=f'{opt.logdir}/{opt.name}',
+        filename='speech2text_best',
+        monitor='val_loss',
+        mode='min'
+    )
+
+    last_callback = ModelCheckpoint(
+        dirpath=f'{opt.logdir}/{opt.name}',
+        save_last=True
+    )
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=f'{opt.logdir}/{run_name}',
-        filename='speech2text-{epoch:02d}-{val_loss:.2f}',
-        auto_insert_metric_name=False,
-        verbose=True,
-        monitor='val_loss',
-        save_last=True,
-        every_n_epochs=4
+        dirpath=f'{opt.logdir}/{opt.name}',
+        filename='speech2text_{epoch:02d}',
+        every_n_epochs=opt.epochs // 4
     )
 
     trainer = Trainer(
@@ -150,7 +166,8 @@ if __name__ == "__main__":
         num_nodes=opt.nodes,
         logger=logger,
         check_val_every_n_epoch=2,
-        checkpoint_callback=checkpoint_callback,
+        auto_scale_batch_size=True,
+        auto_lr_find=True,
+        callbacks=[best_callback, last_callback, checkpoint_callback],
     )
-
     trainer.fit(speech2text)
