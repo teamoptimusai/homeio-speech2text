@@ -1,8 +1,8 @@
 import webbrowser
-import sys
 import argparse
-from os.path import join, realpath
 from flask import Flask, render_template, jsonify
+import sys
+sys.path.append('../')
 
 
 global asr_engine
@@ -16,9 +16,9 @@ def index():
 
 @app.route("/start_asr")
 def start():
-    action = DemoAction()
-    asr_engine.run(action)
-    return jsonify("speechrecognition start success!")
+    demo = Demo()
+    asr_engine.run(demo)
+    return jsonify("HomeIO STT Started!")
 
 
 @app.route("/get_audio")
@@ -28,11 +28,12 @@ def get_audio():
     return jsonify(transcript)
 
 
-class DemoAction:
+class Demo:
 
     def __init__(self):
         self.asr_results = ""
         self.current_beam = ""
+        self.save_transcript("")
 
     def __call__(self, x):
         results, current_context_length = x
@@ -57,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('--ken_lm_file', type=str, default=None, required=False,
                         help='If you have an ngram lm use to decode')
     args = parser.parse_args()
-    asr_engine = SpeechRecognitionEngine(args.model_file, args.ken_lm_file)
+    asr_engine = SpeechRecognitionEngine(
+        args.model_file, args.ken_lm_file, temp_audio_dir="../temp/audio")
     webbrowser.open_new('http://127.0.0.1:3000/')
     app.run(port=3000)
