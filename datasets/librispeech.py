@@ -25,7 +25,7 @@ with open('dataset.json', 'r') as file:
     random.shuffle(lines)
     train_lines = lines[:int(len(lines)*train_percentage)]
     test_lines = lines[int(len(lines)*train_percentage):]
-with open('train.json', 'w') as file:
+with open(f'{save_dir}/train.json', 'w') as file:
     file.writelines(train_lines)
-with open('valid.json', 'w') as file:
+with open(f'{save_dir}/valid.json', 'w') as file:
     file.writelines(test_lines)

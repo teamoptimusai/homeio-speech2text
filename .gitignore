@@ -1,5 +1,6 @@
 datasets/*
-!datasets/make_dataset.py
+!datasets/librispeech.py
+!datasets/commonvoice.py
 Run.ipynb
 temp
 runs
