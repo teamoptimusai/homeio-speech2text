@@ -9,7 +9,7 @@ import argparse
 from model.model import SpeechRecognition
 from utils.dataset import Dataset, collate_fn_padd
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, QuantizationAwareTraining, ModelSummary, RichProgressBar, DeviceStatsMonitor
 import yaml
 from datetime import datetime
 import os
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     # increment a number if the folder already exists
     if os.path.exists(os.path.join(opt.logdir, opt.name)):
         i = 1
-        while os.path.exists(os.path.join(opt.logdir, opt.name + "_" + str(i))):
+        while os.path.exists(os.path.join(opt.logdir, opt.name + str(i))):
             i += 1
         opt.name = opt.name + str(i)
     os.makedirs(os.path.join(opt.logdir, opt.name))
@@ -161,13 +161,15 @@ if __name__ == "__main__":
     )
 
     trainer = Trainer(
-        max_epochs=opt.epochs, gpus=opt.gpus,
+        max_epochs=opt.epochs, gpus=-1,
         auto_select_gpus=True,
         num_nodes=opt.nodes,
         logger=logger,
         check_val_every_n_epoch=2,
         auto_scale_batch_size=True,
         auto_lr_find=True,
-        callbacks=[best_callback, last_callback, checkpoint_callback],
+        callbacks=[best_callback, last_callback, checkpoint_callback,
+                   ModelSummary(), RichProgressBar(), DeviceStatsMonitor()],
+        strategy='ddp'
     )
     trainer.fit(speech2text)
