@@ -132,12 +132,12 @@ if __name__ == "__main__":
         speech2text = Speech2Text(model, opt, dataset_params)
 
     # increment a number if the folder already exists
-    if os.path.exists(os.path.join(opt.logdir, opt.name)):
-        i = 1
-        while os.path.exists(os.path.join(opt.logdir, opt.name + str(i))):
-            i += 1
-        opt.name = opt.name + str(i)
-    os.makedirs(os.path.join(opt.logdir, opt.name))
+    # if os.path.exists(os.path.join(opt.logdir, opt.name)):
+    #     i = 1
+    #     while os.path.exists(os.path.join(opt.logdir, opt.name + str(i))):
+    #         i += 1
+    #     opt.name = opt.name + str(i)
+    os.makedirs(os.path.join(opt.logdir, opt.name), exist_ok=True)
     print("Saving Checkpoints at", os.path.join(opt.logdir, opt.name))
 
     logger = TensorBoardLogger(save_dir=opt.logdir, name=opt.name)
@@ -162,8 +162,6 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         max_epochs=opt.epochs, gpus=-1,
-        auto_select_gpus=True,
-        num_nodes=opt.nodes,
         logger=logger,
         check_val_every_n_epoch=2,
         auto_scale_batch_size=True,

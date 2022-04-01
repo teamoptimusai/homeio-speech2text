@@ -5,6 +5,7 @@ dataset:
   specaug_policy: 3
   time_mask: 70
   freq_mask: 15
+  log_ex: False
 
 hyper_parameters:
   num_classes: 29
